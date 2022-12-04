@@ -1,6 +1,6 @@
 
 <template>
-  <div class="read-clock">
+  <div class="read-clock" :style="{height: `${innerHeight}px`}">
     <clock
       :isDark="isDark"
       :size="clockSize"
@@ -26,6 +26,8 @@ import { computed, onMounted, ref, watch } from 'vue';
 import Clock from './components/Clock.vue';
 import Switcher from './components/Switcher.vue';
 
+const innerHeight = window.innerHeight;
+
 const clockSize = Math.min(
   500,
   window.innerWidth - 40,
@@ -35,6 +37,7 @@ const hours = ref(1);
 const minutes = ref(0);
 const seconds = ref<number | undefined>(0);
 const showTime = ref(true);
+
 const showSeconds = ref(
   window.localStorage.getItem('readClock:showSeconds') === '1',
 );
@@ -141,8 +144,9 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 20px;
-  padding-top: 30px;
+
   .switchers {
     display: flex;
     gap: 20px;
