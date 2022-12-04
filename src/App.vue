@@ -14,9 +14,10 @@
       <switcher v-model="showSeconds">显示秒针</switcher>
       <switcher v-model="showNumbers">显示刻度</switcher>
     </div>
-    <div class="time">{{ time }}</div>
+
     <div class="button" @click="generate">生成题目</div>
-    <div class="button" @click="showTime = true">查看答案</div>
+    <div class="time" v-if="showTime" @click="showTime = false">{{ time }}</div>
+    <div class="button" v-else @click="showTime = true">查看答案</div>
   </div>
 </template>
 
@@ -145,17 +146,18 @@ body {
   .switchers {
     display: flex;
     gap: 20px;
-    margin-top: 30px;
+    margin: 30px 0;
   }
   .time {
-    font-size: 32px;
-    margin-top: 20px;
+    height: 30px;
+    font-size: 30px;
     font-family: Courier, monospace, 'Courier New';
     user-select: none;
     -webkit-user-select: none;
+    cursor: pointer;
   }
   .button {
-    width: 120px;
+    width: 160px;
     height: 30px;
     line-height: 30px;
     text-align: center;
