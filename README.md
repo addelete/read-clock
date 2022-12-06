@@ -12,7 +12,7 @@
 - 点击`查看答案`显示答案
 - 可设置深色或浅色模式
 - 可设置秒针的显示或隐藏
-- 可设置刻度的显示或隐藏
+- 可设置数字刻度显示等级（无、时、刻、分）
 
 ## 在线demo
 [https://oss.humwo.com/read-clock](https://oss.humwo.com/read-clock)

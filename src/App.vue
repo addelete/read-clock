@@ -1,18 +1,22 @@
 
 <template>
-  <div class="read-clock" :style="{height: `${innerHeight}px`}">
+  <div class="read-clock" :style="{ height: `${innerHeight}px` }">
     <clock
       :isDark="isDark"
       :size="clockSize"
       v-model:hours="hours"
       v-model:minutes="minutes"
       v-model:seconds="seconds"
-      :showNumbers="showNumbers"
+      :displayNumbersLevel="Number(displayNumbersLevel)"
     />
     <div class="switchers">
       <switcher v-model="isDark">深色模式</switcher>
       <switcher v-model="showSeconds">显示秒针</switcher>
-      <switcher v-model="showNumbers">显示刻度</switcher>
+    </div>
+    <div class="displayNumbersLevel">
+      <span>刻度</span>
+      <input type="range" min="0" max="3" v-model="displayNumbersLevel" />
+      <span>{{ displayNumbersLevelText }}</span>
     </div>
 
     <div class="button" @click="generate">生成题目</div>
@@ -38,12 +42,14 @@ const minutes = ref(0);
 const seconds = ref<number | undefined>(0);
 const showTime = ref(true);
 
+const displayNumbersLevel = ref(
+  window.localStorage.getItem('readClock:displayNumbersLevel') || '1',
+);
+
 const showSeconds = ref(
   window.localStorage.getItem('readClock:showSeconds') === '1',
 );
-const showNumbers = ref(
-  !(window.localStorage.getItem('readClock:showNumbers') === '0'),
-);
+
 const isDark = ref(window.localStorage.getItem('readClock:isDark') === '1');
 
 onMounted(() => {
@@ -65,23 +71,22 @@ watch(
 );
 
 watch(
-  () => showNumbers.value,
+  () => isDark.value,
   () => {
-    window.localStorage.setItem(
-      'readClock:showNumbers',
-      showNumbers.value ? '1' : '0',
-    );
+    document.body.classList.toggle('dark', isDark.value);
+    window.localStorage.setItem('readClock:isDark', isDark.value ? '1' : '0');
   },
   {
     immediate: true,
   },
 );
-
 watch(
-  () => isDark.value,
+  () => displayNumbersLevel.value,
   () => {
-    document.body.classList.toggle('dark', isDark.value);
-    window.localStorage.setItem('readClock:isDark', isDark.value ? '1' : '0');
+    window.localStorage.setItem(
+      'readClock:displayNumbersLevel',
+      displayNumbersLevel.value,
+    );
   },
   {
     immediate: true,
@@ -96,6 +101,10 @@ watch(
     }
   },
 );
+
+const displayNumbersLevelText = computed(() => {
+  return ['无', '时', '刻', '分'][Number(displayNumbersLevel.value)];
+});
 
 const time = computed(() => {
   return showTime.value
@@ -150,7 +159,13 @@ body {
   .switchers {
     display: flex;
     gap: 20px;
-    margin: 30px 0;
+    margin-top: 30px;
+  }
+  .displayNumbersLevel {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .time {
     height: 30px;

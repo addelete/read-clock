@@ -2,6 +2,9 @@
 
 <template>
   <v-stage :config="configKonva">
+    <v-layer>
+      <v-text v-if="!isPhone" :config="logoText" @click="goToGithub" />
+    </v-layer>
     <v-layer
       :offset="{
         x: -props.size / 2,
@@ -14,9 +17,16 @@
           :key="index"
           :config="item"
         />
-        <template v-if="showNumbers">
+        <template v-if="displayNumbersLevel > 0">
           <v-text
-            v-for="(item, index) in numberList"
+            v-for="(item, index) in hourNumberList"
+            :key="index"
+            :config="item"
+          />
+        </template>
+        <template v-if="displayNumbersLevel > 1">
+          <v-text
+            v-for="(item, index) in minuteNumberList"
             :key="index"
             :config="item"
           />
@@ -74,11 +84,12 @@ const props = withDefaults(
     seconds?: number; // 0-59
     size?: number;
     isDark?: boolean;
-    showNumbers?: boolean;
+    displayNumbersLevel: number; // 0-3
   }>(),
   {
     size: 500,
     isDark: false,
+    displayNumbersLevel: 1,
   },
 );
 
@@ -203,13 +214,38 @@ const configKonva = computed(() => {
   };
 });
 
+const logoText = computed(() => {
+  return {
+    x: 0,
+    y: scaleNumber(100),
+    fill: color.value,
+    text: 'github',
+    fontSize: scaleNumber(20),
+    fontFamily: 'serif',
+    fontStyle: 'italic',
+    width: props.size,
+    align: 'center',
+    opacity: 0.5,
+  };
+});
+
 // 刻度线设置列表
 const scaleList = computed(() => {
   const list = [];
-  const bigWidth = (8 * props.size) / 500;
-  const smallWidth = (2 * props.size) / 500;
-  const bigHeight = ((props.showNumbers ? 20 : 30) * props.size) / 500;
-  const smallHeight = ((props.showNumbers ? 10 : 15) * props.size) / 500;
+  const bigWidth = scaleNumber(8);
+  const smallWidth = scaleNumber(2);
+  const bigHeight =
+    props.displayNumbersLevel > 1
+      ? scaleNumber(10)
+      : props.displayNumbersLevel > 0
+      ? scaleNumber(20)
+      : scaleNumber(30);
+  const smallHeight =
+    props.displayNumbersLevel > 1
+      ? scaleNumber(8)
+      : props.displayNumbersLevel > 0
+      ? scaleNumber(10)
+      : scaleNumber(15);
   for (let i = 0; i < 60; i++) {
     const isBig = i % 5 === 0;
     const width = isBig ? bigWidth : smallWidth;
@@ -218,9 +254,10 @@ const scaleList = computed(() => {
     // 水平偏移
     const cosScale = Math.cos(rangle);
     const sinScale = Math.sin(rangle);
-    const offsetX = cosScale * (props.size / 2) + (width / 2) * sinScale;
+    const radius = props.size / 2 - (props.displayNumbersLevel > 1 ? scaleNumber(15) : 0);
+    const offsetX = cosScale * radius + (width / 2) * sinScale;
     // 垂直偏移
-    const offsetY = sinScale * (props.size / 2) - (width / 2) * cosScale;
+    const offsetY = sinScale * radius - (width / 2) * cosScale;
     // 加入刻度线列表
     list.push({
       x: offsetX,
@@ -234,10 +271,10 @@ const scaleList = computed(() => {
   return list;
 });
 
-// 数字设置列表
-const numberList = computed(() => {
+// 时数字设置列表
+const hourNumberList = computed(() => {
   const list = [];
-  const fontSize = (60 * props.size) / 500;
+  const fontSize = scaleNumber(60);
   const centerX = -fontSize;
   const centerY = -fontSize * 0.5;
   for (let i = 1; i <= 12; i++) {
@@ -265,9 +302,42 @@ const numberList = computed(() => {
   return list;
 });
 
+// 分刻数字设置列表
+const minuteNumberList = computed(() => {
+  const list = [];
+  const fontSize = scaleNumber(12);
+  const centerX = -fontSize;
+  const centerY = -fontSize * 0.5;
+  for (let i = 1; i <= 60; i++) {
+    if (props.displayNumbersLevel < 2) continue;
+    if (i % 5 !== 0 && props.displayNumbersLevel < 3) continue;
+    // 水平偏移
+    const offsetX =
+      Math.cos(((i - 15) * 6 * Math.PI) / 180) *
+      (props.size / 2 - fontSize / 2);
+    // 垂直偏移
+    const offsetY =
+      Math.sin(((i - 15) * 6 * Math.PI) / 180) *
+      (props.size / 2 - fontSize / 2);
+    // 加入数字列表
+    list.push({
+      x: centerX + offsetX,
+      y: centerY + offsetY,
+      fill: color.value,
+      text: i.toString().padStart(2, '0'),
+      fontSize: fontSize,
+      width: fontSize * 2,
+      align: 'center',
+      verticalAlign: 'middle',
+      opacity: 0.8,
+    });
+  }
+  return list;
+});
+
 const bgCenterPoint = computed(() => {
   return {
-    radius: (12 * props.size) / 500,
+    radius: scaleNumber(12),
     fill: color.value,
   };
 });
@@ -284,7 +354,7 @@ const secondHandConfig = computed(() => {
   return genHand(2, 1.05, 0.9, '#EA6040');
 });
 const centerPoint = computed(() => {
-  const radius = (3 * props.size) / 500;
+  const radius = scaleNumber(3);
   return {
     fill: color.value,
     stroke: '#EA6040',
@@ -329,16 +399,13 @@ const onPointMove = (e: any) => {
   node.rotate(currentR - oldR);
   switch (movingHandType.value) {
     case 'hour':
-      emit('update:hours', (Math.round(currentR / 30) + 11) % 12 + 1);
+      emit('update:hours', ((Math.round(currentR / 30) + 11) % 12) + 1);
       break;
     case 'minute':
       emit('update:minutes', (Math.round(currentR / 6) + 60) % 60);
       if (astrideCircle) {
         const hours = (props.hours || 0) + (clockwise ? 1 : -1);
-        emit(
-          'update:hours',
-          (hours + 11) % 12 + 1,
-        );
+        emit('update:hours', ((hours + 11) % 12) + 1);
         hourHandRef.value
           ?.getNode()
           ?.rotate(
@@ -356,10 +423,7 @@ const onPointMove = (e: any) => {
       emit('update:seconds', (Math.round(currentR / 6) + 60) % 60);
       if (astrideCircle) {
         const minutes = (props.minutes || 0) + (clockwise ? 1 : -1);
-        emit(
-          'update:minutes',
-          (minutes + 60) % 60,
-        );
+        emit('update:minutes', (minutes + 60) % 60);
         if (minutes >= 60 || minutes < 0) {
           emit(
             'update:hours',
@@ -416,6 +480,14 @@ const onPointDownSecond = (event: KonvaEventObject<any>, hand: string) => {
     document.addEventListener('mouseup', onPointUp);
   }
 };
+
+const scaleNumber = (number: number) => {
+  return (props.size / 500) * number;
+};
+
+const goToGithub = () => {
+  window.location.href = 'https://github.com/addelete/read-clock'
+}
 </script>
 
 <style lang="scss">
